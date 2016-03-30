@@ -28,34 +28,90 @@ app.use('/', routes);
 app.use('/users', users);
 
 // my code
+// Raw Data
 var apiKey = 'R7zvLASyVJWDpUar9cRbssx2k8rylSzSHw6LAGhh';
 var username = 'skludt';
 var password = '+P582gFW6Np366^7b';
-var url = 'https://developer.nrel.gov/api/pvdaq/v3/data.json?api_key=' + apiKey +
-    '&system_id=2&start_date=3/24/2011&end_date=3/25/2011';
+var startDate = '3/24/2011';
+var endDate = '3/24/2011';
+
+//Aggregated Data
 
 var options = {
     host : 'developer.nrel.gov',
-    path : '/api/pvdaq/v3/data.json?api_key=' + apiKey + '&system_id=3&start_date=3/24/2011&end_date=3/25/2011',
+    path : '/api/pvdaq/v3/site_data.json?api_key=' + apiKey +
+            '&system_id=2&start_date=' + startDate +
+            '&end_date=' + endDate +
+            '&aggregate=hourly',
     port: 443,
     headers: {
         authorization : 'Basic ' + new Buffer(username + ':' + password).toString('base64')
     }
 };
-
+var readings = [];
 request = https.get(options, function(res) {
-    var body = "";
     res.on('data', function(data) {
-        body += data;
+        var jsonData = JSON.parse(data);
+        var headings = jsonData.outputs[0];
+        var numOfReadings = jsonData.outputs.length;
+
+
+        for (var i = 1; i < numOfReadings; i++) {
+            // for each of the elements I need to map them to a proper JSON Object
+            var object = jsonData.outputs[i];
+            //loop trough each object element and pair with same placed value of headings
+            // and put it in readings
+            var element = {};
+            for (var x = 0; x < object.length; x++) {
+                var name = headings[x];
+                var value = object[x];
+                element[name] = (value);
+            }
+            // here is where I need to call Event Hub to pass in a single JSON object
+            console.log(JSON.stringify(element));
+
+            //create a JSON object with all the data collected
+            readings.push(element);
+
+        }
+        //console.log(readings)
+
     });
     res.on('end', function() {
-        console.log(body);
+        // do something at the end of the read...
+        console.log(JSON.stringify(readings))
     });
     res.on('error', function(e) {
         console.log("Got Error: " + e.message)
     });
 });
 
+
+/*
+ var options = {
+ host : 'developer.nrel.gov',
+ path : '/api/pvdaq/v3/data.json?api_key=' + apiKey +
+ '&system_id=3&start_date=' + startDate +
+ '&end_date=' + endDate,
+ port: 443,
+ headers: {
+ authorization : 'Basic ' + new Buffer(username + ':' + password).toString('base64')
+ }
+ };
+
+ request = https.get(options, function(res) {
+ var body = "";
+ res.on('data', function(data) {
+ body += data;
+ });
+ res.on('end', function() {
+ console.log(body);
+ });
+ res.on('error', function(e) {
+ console.log("Got Error: " + e.message)
+ });
+ });
+ */
 
 // end my code
 
